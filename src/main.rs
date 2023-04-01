@@ -1,7 +1,7 @@
+use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 use tokio::task;
-use std::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -13,14 +13,14 @@ async fn main() -> io::Result<()> {
 
     let read = task::spawn(async move {
         // Read from server
-        loop{
+        loop {
             let mut server_data = String::new();
             reader.read_line(&mut server_data).await.unwrap();
             println!("Server: {}", server_data);
         }
     });
 
-    let write = task::spawn(async move{
+    let write = task::spawn(async move {
         // Write to server
         loop {
             let mut user_input = String::new();
