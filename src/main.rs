@@ -1,7 +1,6 @@
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 use tokio::task;
-use tokio::sync::mpsc;
 use std::io;
 
 #[tokio::main]
@@ -12,50 +11,27 @@ async fn main() -> io::Result<()> {
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
 
-    // Create an async channel for communication between tasks
-    let (tx, mut rx) = mpsc::channel(1);
-
-    // Spawn a new task to read incoming data from the server
-    let read_task = task::spawn(async move {
-        let mut server_data = String::new();
-        loop {
-            if reader.read_line(&mut server_data).await.is_err() {
-                break;
-            }
+    let read = task::spawn(async move {
+        // Read from server
+        loop{
+            let mut server_data = String::new();
+            reader.read_line(&mut server_data).await.unwrap();
             println!("Server: {}", server_data);
-            server_data.clear();
         }
     });
 
-    let write_task = task::spawn(async move {
-        let mut user_input = String::new();
+    let write = task::spawn(async move{
+        // Write to server
         loop {
-            if io::stdin().read_line(&mut user_input).is_err() {
-                break;
-            }
-            let formatted_input = format!("{}\n", user_input.trim()); // Add a newline character
-            if let Err(_) = tx.send(formatted_input.clone()).await {
-                break;
-            }
-            user_input.clear();
-        }
-    });    
-
-    let forward_task = task::spawn(async move {
-        while let Some(user_input) = rx.recv().await {
-            if user_input.trim().eq_ignore_ascii_case("exit") {
-                break;
-            }
-            if writer.write_all(user_input.as_bytes()).await.is_err() {
-                break;
-            }
-            writer.flush().await.unwrap(); // Flush the write buffer
+            let mut user_input = String::new();
+            io::stdin().read_line(&mut user_input).unwrap();
+            writer.write_all(user_input.as_bytes()).await.unwrap();
+            writer.flush().await.unwrap();
         }
     });
-    
 
     // Wait for all tasks to complete
-    let _ = tokio::try_join!(read_task, write_task, forward_task);
+    let _ = tokio::try_join!(read, write);
 
     Ok(())
 }
