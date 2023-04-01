@@ -16,7 +16,7 @@ async fn main() -> io::Result<()> {
         loop {
             let mut server_data = String::new();
             reader.read_line(&mut server_data).await.unwrap();
-            println!("Server: {}", server_data);
+            println!("{}", server_data);
         }
     });
 
