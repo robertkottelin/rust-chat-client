@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net::TcpStream;
 use std::io::stdin;
 
@@ -10,11 +10,6 @@ fn main() -> std::io::Result<()> {
     let mut writer = BufWriter::new(&stream);
 
     loop {
-        // Read incoming data from the server
-        let mut server_data = String::new();
-        reader.read_line(&mut server_data)?;
-        println!("Server: {}", server_data);
-
         // Read user input from the console
         let mut user_input = String::new();
         stdin().read_line(&mut user_input)?;
@@ -27,6 +22,11 @@ fn main() -> std::io::Result<()> {
         // Send user input back to the server
         writer.write_all(user_input.as_bytes())?;
         writer.flush()?;
+
+        // Read incoming data from the server
+        let mut server_data = String::new();
+        reader.read_line(&mut server_data)?;
+        println!("Server: {}", server_data);
     }
 
     Ok(())
