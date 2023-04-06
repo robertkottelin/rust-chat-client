@@ -1,11 +1,11 @@
 use std::io;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::task;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let stream = TcpStream::connect("127.0.0.1:8080").await?;
+    let stream = TcpStream::connect("localhost:8080").await?;
 
     // Create a buffered reader and writer for the stream
     let (reader, mut writer) = stream.into_split();
@@ -15,8 +15,11 @@ async fn main() -> io::Result<()> {
         // Read from server
         loop {
             let mut server_data = String::new();
-            reader.read_line(&mut server_data).await.unwrap();
-            println!("{}", server_data);
+            match reader.read_line(&mut server_data).await {
+                Ok(n) if n == 0 => continue, // empty line, continue loop
+                Ok(_) => println!("{}", server_data), // line read successfully
+                Err(e) => panic!("Error reading from server: {}", e), // error reading from server
+            }
         }
     });
 
@@ -25,11 +28,22 @@ async fn main() -> io::Result<()> {
         loop {
             let mut user_input = String::new();
             io::stdin().read_line(&mut user_input).unwrap();
-            writer.write_all(user_input.as_bytes()).await.unwrap();
-            writer.flush().await.unwrap();
+    
+            match writer.write_all(user_input.as_bytes()).await {
+                Ok(_) => {
+                    if let Err(e) = writer.flush().await {
+                        println!("Error flushing writer: {}", e);
+                        break; // exit loop if there is an error flushing the writer
+                    }
+                },
+                Err(e) => {
+                    println!("Error writing to server: {}", e);
+                    break; // exit loop if there is an error writing to the server
+                }
+            }
         }
     });
-
+    
     // Wait for all tasks to complete
     let _ = tokio::try_join!(read, write);
 
