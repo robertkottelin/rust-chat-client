@@ -28,6 +28,7 @@ async fn main() -> io::Result<()> {
         loop {
             let mut user_input = String::new();
             io::stdin().read_line(&mut user_input).unwrap();
+            //let msg = format!();
     
             match writer.write_all(user_input.as_bytes()).await {
                 Ok(_) => {
